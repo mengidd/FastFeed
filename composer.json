@@ -19,8 +19,7 @@
         "desarrolla2/cache": ">=1.0.0",
         "fastfeed/url": ">=0.1.0",
         "ezyang/htmlpurifier": "4.9.*",
-        "guzzle/guzzle": "~3.7",
-        "egeloen/http-adapter": "~0"
+        "guzzle/guzzle": "~6.0"
     },
     "autoload": {
         "psr-4": {

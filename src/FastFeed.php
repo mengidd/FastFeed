@@ -13,15 +13,10 @@
 
 namespace FastFeed;
 
-use Ivory\HttpAdapter\HttpAdapterInterface;
-use Ivory\HttpAdapter\Message\InternalRequest;
-use Ivory\HttpAdapter\Message\Request;
-use Ivory\HttpAdapter\MultiHttpAdapterException;
-
-use Guzzle\Http\ClientInterface;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-
 use FastFeed\Exception\LogicException;
 use FastFeed\Parser\ParserInterface;
 use FastFeed\Processor\ProcessorInterface;
@@ -67,10 +62,10 @@ class FastFeed implements FastFeedInterface
     protected $feeds = array();
 
     /**
-     * @param ClientInterface $guzzle
+     * @param ClientInterface $http
      * @param LoggerInterface $logger
      */
-    public function __construct(HttpAdapterInterface $http, LoggerInterface $logger)
+    public function __construct(ClientInterface $http, LoggerInterface $logger)
     {
         $this->http = $http;
         $this->logger = $logger;
@@ -222,25 +217,27 @@ class FastFeed implements FastFeedInterface
      *
      * @param $url
      *
-     * @return \Guzzle\Http\EntityBodyInterface|string
+     * @return string|void
      */
     protected function get($url)
     {
-        $request = $this->http->get(
-            $url,
-            array('User-Agent' => self::USER_AGENT.' v.'.self::VERSION)
-        );
-
-        $response = $request->send();
-
-        if (!$response->isSuccessful()) {
-            $this->log('fail with '.$response->getStatusCode().' http code in url "'.$url.'" ');
-
+        try {
+            $response = $this->http->request('GET', $url, ['User-Agent' => self::USER_AGENT . ' v.' . self::VERSION]);
+        } catch (GuzzleException $e) {
+            $this->log($e->getMessage() . '. URL: "'.$url.'" ');
             return;
         }
+
+        $statusCode = $response->getStatusCode();
+
+        if ($statusCode >= 400) {
+            $this->log('fail with '.$statusCode.' http code in url "'.$url.'" ');
+            return;
+        }
+
         $this->logger->log(LogLevel::INFO, 'retrieved url "'.$url.'" ');
 
-        return $response->getBody();
+        return (string) $response->getBody();
     }
 
     /**
